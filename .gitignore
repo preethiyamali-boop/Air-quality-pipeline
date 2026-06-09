@@ -5,6 +5,7 @@
 *.duckdb
 *.duckdb.wal
 partitioned_data/
+partitioned_clean_data/
 *.zip
 *.csv
 

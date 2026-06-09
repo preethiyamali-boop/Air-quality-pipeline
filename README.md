@@ -140,6 +140,46 @@ All queries under 165ms on 5.8M rows.
 
 ---
 
+## Week 3 — Cleaning, Auditing, Partitioning & Database Comparison
+
+**Goal:** Clean the dataset, show empty/duplicate rows, partition the cleaned data, and compare the current DuckDB choice against two alternatives.
+
+### What we did
+
+1. Audited missing values before cleaning and saved `missing_before.png`
+2. Checked for fully empty rows and duplicate rows, displaying the affected rows when present
+3. Dropped unusable/duplicate columns: `vws_m_s`, `timestamp`, and `station`
+4. Removed duplicate records and invalid negative pollution readings
+5. Filled weather gaps using station-month medians where a local median exists
+6. Saved `team_4_clean.parquet` and a stricter `team_4_clean_strict.parquet`
+7. Partitioned the strict cleaned dataset into Hive-style `partitioned_clean_data/year=YYYY/month=MM/` folders
+8. Benchmarked DuckDB against SQLite row-store and a document-style scan on the same analytical queries
+
+### Cleaning evidence
+
+| Metric | Before | After |
+|---|---:|---:|
+| Rows | 5,831,431 | 5,831,431 |
+| Columns | 22 | 19 |
+| Missing cells | 19,402,433 | 11,710,449 |
+| Data quality | 84.9% | 89.4% |
+
+The source audit found 0 duplicate rows and 0 fully empty rows in the submitted dataset. The notebook still includes explicit display/export logic, so if a rerun finds empty or duplicate rows they are shown and written under `output/week3_audit/`.
+
+### Why DuckDB remains the best database choice
+
+Week 2 already showed DuckDB beating SQLite by 21–43× on full-dataset analytical queries. Week 3 extends the comparison to three approaches:
+
+| Option | Type | Result |
+|---|---|---|
+| DuckDB | Columnar analytical database | Best fit for parquet-backed grouped time-series analytics |
+| SQLite | Row-store relational database | Simple, but slower for scans and aggregations across millions of rows |
+| Document-style scan | NoSQL-style flexible records | Flexible, but inefficient for repeated structured aggregations |
+
+DuckDB is better for this project because the workload repeatedly groups, filters, and aggregates a structured time-series dataset. It reads only the columns needed for each query, works directly with parquet, and avoids the setup overhead of a separate database server.
+
+---
+
 ## Project structure
 
 ```
@@ -148,6 +188,7 @@ DT_project/
 ├── .gitignore
 ├── week1_ingestion.ipynb        ← ingestion, summary, partitioning
 ├── air_quality_duckdb.ipynb     ← data model, DuckDB, benchmarks
+├── week3_cleaning_eda.ipynb     ← cleaning audit, cleaned partitioning, 3-way benchmark
 ├── output/
 │   └── ingestion_summary.txt
 ├── team_4.parquet               ← source data (gitignored, 51.8 MB)
