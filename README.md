@@ -180,6 +180,51 @@ DuckDB is better for this project because the workload repeatedly groups, filter
 
 ---
 
+## Data Serving
+
+**Goal:** Make the cleaned air-quality data available to users through a small API.
+
+The project includes `api.py`, a FastAPI service backed by DuckDB. It serves the cleaned parquet outputs without loading them into a separate database server. The API looks for data in this order:
+
+1. `partitioned_clean_data/`
+2. `team_4_clean_strict.parquet`
+3. `team_4_clean.parquet`
+4. `team_4.parquet`
+
+This keeps the serving layer tied to the same database choice proven above: DuckDB can query parquet directly and can use the partitioned cleaned dataset when it exists.
+
+### Run the API
+
+```bash
+pip install -r requirements.txt
+uvicorn api:app --reload
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+### Customer-facing endpoints
+
+| Endpoint | Purpose |
+|---|---|
+| `/metadata` | Shows row count, time range, station count, and pollutant count |
+| `/stations` | Lists monitoring stations |
+| `/pollutants` | Lists pollutants and measurement counts |
+| `/measurements` | Returns filtered readings by station, pollutant, year, and month |
+| `/summary/monthly` | Monthly average/min/max for a pollutant |
+| `/summary/stations` | Station ranking for a pollutant |
+
+Example:
+
+```text
+http://127.0.0.1:8000/summary/monthly?pollutant=pm25
+```
+
+---
+
 ## Project structure
 
 ```
@@ -189,6 +234,8 @@ DT_project/
 ├── week1_ingestion.ipynb        ← ingestion, summary, partitioning
 ├── air_quality_duckdb.ipynb     ← data model, DuckDB, benchmarks
 ├── week3_cleaning_eda.ipynb     ← cleaning audit, cleaned partitioning, 3-way benchmark
+├── api.py                       ← FastAPI data-serving layer
+├── requirements.txt
 ├── output/
 │   └── ingestion_summary.txt
 ├── team_4.parquet               ← source data (gitignored, 51.8 MB)
@@ -203,12 +250,14 @@ Data files are excluded from git — too large, and they're build artifacts repr
 ## How to reproduce
 
 ```bash
-pip install pandas pyarrow duckdb
+pip install -r requirements.txt
 ```
 
 1. Place `team_4.parquet` in the project root
 2. Run `week1_ingestion.ipynb` — produces partitioned data and ingestion summary
 3. Run `air_quality_duckdb.ipynb` — builds the DuckDB database and runs benchmarks
+4. Run `week3_cleaning_eda.ipynb` — produces cleaned data and cleaned partitions
+5. Run `uvicorn api:app --reload` — serves the data API locally
 
 ---
 

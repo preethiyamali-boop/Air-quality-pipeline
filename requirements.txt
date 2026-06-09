@@ -1,0 +1,7 @@
+pandas
+pyarrow
+duckdb
+fastapi
+uvicorn
+missingno
+matplotlib
